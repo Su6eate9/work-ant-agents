@@ -11,19 +11,12 @@ patches-own [
 
 turtles-own [
   health               ;; saúde da formiga (100 = saudável, 0 = morta)
-  energy               ;; energia da formiga (100 = cheia, 0 = exausta)
-  carrying-food?       ;; verdadeiro se a formiga está carregando comida, falso se não
-  carrying-chemical?   ;; verdadeiro se a formiga está carregando feromônio, falso se não
-
 ]
 
 ;; Variáveis globais para controle do clima
 globals [
-  current-weather            ;; tipo de clima atual ("normal", "chuvoso", "seco", "tempestade", "neve")
-  weather-timer              ;; contador para alternar o clima periodicamente
-  weather-duration           ;; duração do clima atual em ticks
-  weather-duration-timer     ;; contador para controlar a duração do clima
-  weather-duration-remaining ;; tempo restante para o clima atual
+  current-weather      ;; tipo de clima atual ("normal", "chuvoso", "seco", "tempestade", "neve")
+  weather-timer        ;; contador para alternar o clima periodicamente
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,37 +26,32 @@ globals [
 to setup
   clear-all
   set-default-shape turtles "bug"
-  create-turtles population [
-    set size 2                     ;; mais fácil de ver
-    set color red                  ;; vermelho = não carregando comida
-    set health 100                 ;; saúde inicial
-    set energy 100                 ;; energia inicial
-    set carrying-food? false       ;; não carregando comida
-    set carrying-chemical? false   ;; não carregando feromônio
+  create-turtles population
+  [ 
+    set size 2         ;; mais fácil de ver
+    set color red      ;; vermelho = não carregando comida
+    set health 100     ;; começa com saúde total
   ]
   setup-patches
   setup-weather
   reset-ticks
 end
 
-;; Inicializa o clima como normal e define o tempo de duração
+;; Inicializa o clima como normal
 to setup-weather
   set current-weather "normal"
   set weather-timer 0
-  set weather-duration 100 + random 100 ;; duração aleatória entre 100 e 200 ticks
-  set weather-duration-timer weather-duration
-
+  
   ;; Inicializa a aparência visual de acordo com o clima
-  apply-weather-visuals-effects
+  apply-weather-visual-effects
 end
 
-;; Aplica os efeitos visuais do clima atual
-to apply-weather-visuals-effects
-  ;; Atualiza a aparência dos patches de acordo com o clima
+;; Aplica efeitos visuais baseados no clima atual
+to apply-weather-visual-effects
+  ;; Atualiza a aparência dos patches para refletir o clima
   ask patches [ recolor-patch ]
-
-  ;; Atualiza a aparência das formigas de acordo com o clima
-  ask patches [
+  
+  ;; Atualiza a aparência das formigas com base no clima
   ask turtles [
     if current-weather = "neve" [
       set size 1.8  ;; Formigas menores na neve
@@ -75,45 +63,29 @@ to apply-weather-visuals-effects
 end
 
 to setup-patches
-  ask patches [
-    ;; Inicializa os patches com valores padrão
-    set chemical 0
-    set food 0
-    set nest? false
-    set nest-scent 0
-    set food-source-number 0
+  ask patches
+  [ 
+    ;; Inicializa todas as propriedades
     set obstacle? false
     set toxic? false
     set toxic-timer 0
-
+    
     setup-nest
     setup-food
     setup-obstacles
-    setup-toxicity
-    recolor-patch
+    recolor-patch 
   ]
-
-  ;; Cria o ninho no centro do mundo
-  ask patch 0 0 [
-    set nest? true
-    set food 2 ;; O ninho tem comida (2 unidades)
-    set chemical 100 ;; O ninho tem feromônio (100 unidades)
-    set nest-scent 100 ;; O ninho tem o maior cheiro de ninho (100)
-  ]
-
-  ;; Cria fontes de comida e obstáculos aleatórios
-  create-food-sources-and-obstacles
 end
 
-to setup-nest  ;; Define o patch como ninho se estiver no centro do mundo
+to setup-nest  ;; procedimento de patch
   ;; define a variável nest? como verdadeira dentro do ninho, falsa em outros lugares
   set nest? (distancexy 0 0) < 5
   ;; espalha um cheiro-de-ninho por todo o mundo -- mais forte perto do ninho
   set nest-scent 200 - distancexy 0 0
 end
 
-to setup-food  ;; Procedimento de patch
-  ;; Configura fonte de comida um à direita
+to setup-food  ;; procedimento de patch
+  ;; configura fonte de comida um à direita
   if (distancexy (0.6 * max-pxcor) 0) < 5
   [ set food-source-number 1 ]
   ;; configura fonte de comida dois na parte inferior esquerda
@@ -129,12 +101,10 @@ end
 
 ;; Configura obstáculos em posições aleatórias
 to setup-obstacles
-  ;; define obstáculos em posições aleatórias
-  if random-float 1 < obstacle-density [
+  ;; Não coloca obstáculos no ninho ou em fontes de comida
+  if (not nest?) and (food-source-number = 0) and (random-float 100 < 5)
+  [
     set obstacle? true
-    set food 0          ;; Os obstáculos não têm comida
-    set chemical 0      ;; Os obstáculos não têm feromônio
-    set nest-scent 0    ;; Os obstáculos não têm cheiro de ninho
   ]
 end
 
@@ -176,16 +146,16 @@ end
 ;;; Go procedures ;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
-to go ;; Botão forever
-  if not any? turtles [ stop ] ;; Para se todas as formigas morrerem
-
+to go  ;; botão forever
+  if not any? turtles [ stop ]  ;; para a simulação se todas as formigas morrerem
+  
   ;; Gerencia o clima
   manage-weather
-
+  
   ;; Gerencia zonas tóxicas
-  manage-toxicity-zones
-
-ask turtles
+  manage-toxic-zones
+  
+  ask turtles
   [ 
     if who >= ticks [ stop ] ;; atrasa a partida inicial
     
@@ -216,7 +186,7 @@ ask turtles
       fd 1  ;; Movimento normal em outros climas
     ]
   ]
-
+  
   ;; Difusão e evaporação do feromônio baseado no clima atual
   let current-diffusion get-weather-diffusion
   let current-evaporation get-weather-evaporation
@@ -327,7 +297,6 @@ to manage-weather
       ]
     ]
     
-    ;; Use if-not em vez de else
     if current-weather != "neve" [
       ;; Restaura o tamanho normal das formigas quando não está nevando
       ask turtles [ set size 2 ]
