@@ -325,7 +325,10 @@ to manage-weather
           set size 1.8  ;; Formigas menores para representar movimento mais lento
         ]
       ]
-    ] else [
+    ]
+    
+    ;; Use if-not em vez de else
+    if current-weather != "neve" [
       ;; Restaura o tamanho normal das formigas quando não está nevando
       ask turtles [ set size 2 ]
     ]
