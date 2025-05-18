@@ -171,3 +171,263 @@ to recolor-patch  ;; procedimento de patch
     ]
   ]
 end
+
+;;;;;;;;;;;;;;;;;;;;;
+;;; Go procedures ;;;
+;;;;;;;;;;;;;;;;;;;;;
+
+to go ;; Botão forever
+  if not any? turtles [ stop ] ;; Para se todas as formigas morrerem
+
+  ;; Gerencia o clima
+  manage-weather
+
+  ;; Gerencia zonas tóxicas
+  manage-toxicity-zones
+
+ask turtles
+  [ 
+    if who >= ticks [ stop ] ;; atrasa a partida inicial
+    
+    ;; Verifica se a formiga está em zona tóxica
+    if [toxic?] of patch-here
+    [
+      set health health - 10  ;; reduz saúde se estiver em zona tóxica
+      if health <= 0 [ die ]  ;; formiga morre se saúde chegar a zero
+    ]
+    
+    ;; Efeitos adicionais baseados no clima atual
+    handle-weather-effects
+    
+    ;; Continua com o comportamento normal se estiver viva
+    ifelse color = red
+    [ look-for-food  ]       ;; não carregando comida? procure por ela
+    [ return-to-nest ]       ;; carregando comida? leve-a de volta ao ninho
+    
+    wiggle
+    
+    ;; Movimento ajustado com base no clima
+    ifelse current-weather = "neve"
+    [ 
+      ;; Movimento mais lento na neve
+      if random 100 < 70 [ fd 1 ]  ;; Apenas 70% de chance de se mover na neve
+    ]
+    [
+      fd 1  ;; Movimento normal em outros climas
+    ]
+  ]
+
+  ;; Difusão e evaporação do feromônio baseado no clima atual
+  let current-diffusion get-weather-diffusion
+  let current-evaporation get-weather-evaporation
+  
+  diffuse chemical (current-diffusion / 100)
+  ask patches
+  [ 
+    set chemical chemical * (100 - current-evaporation) / 100  ;; evapora lentamente o feromônio
+    recolor-patch 
+  ]
+  tick
+end
+
+;; Procedimento para lidar com efeitos específicos do clima nas formigas
+to handle-weather-effects
+  ;; Efeitos da tempestade
+  if current-weather = "tempestade"
+  [
+    ;; Tempestades podem desorientar as formigas
+    if random 100 < 20 [  ;; 20% de chance por tick
+      rt random 360  ;; Desorientação completa
+    ]
+    
+    ;; Tempestades podem causar pequenos danos às formigas
+    if random 100 < 5 [  ;; 5% de chance de dano
+      set health health - 2
+      if health <= 0 [ die ]
+    ]
+  ]
+  
+  ;; Efeitos da neve
+  if current-weather = "neve"
+  [
+    ;; Neve pode reduzir a saúde devido ao frio
+    if random-float 100 < 2 [  ;; 2% de chance por tick
+      set health health - 1
+      if health <= 0 [ die ]
+    ]
+  ]
+  
+  ;; Recuperação em clima normal
+  if current-weather = "normal"
+  [
+    ;; Formigas podem recuperar saúde em clima normal
+    if health < 100 and random 100 < 10 [  ;; 10% de chance de recuperação
+      set health health + 1
+    ]
+  ]
+end
+
+;; Retorna a taxa de difusão baseada no clima atual
+to-report get-weather-diffusion
+  if current-weather = "normal" [ report diffusion-rate ]
+  if current-weather = "chuvoso" [ report diffusion-rate * 0.5 ]  ;; Chuva diminui a difusão
+  if current-weather = "seco" [ report diffusion-rate * 1.5 ]     ;; Clima seco aumenta a difusão
+  if current-weather = "tempestade" [ report diffusion-rate * 0.2 ] ;; Tempestade reduz drasticamente a difusão
+  if current-weather = "neve" [ report diffusion-rate * 0.3 ]     ;; Neve reduz significativamente a difusão
+  report diffusion-rate  ;; Valor padrão caso algo dê errado
+end
+
+;; Retorna a taxa de evaporação baseada no clima atual
+to-report get-weather-evaporation
+  if current-weather = "normal" [ report evaporation-rate ]
+  if current-weather = "chuvoso" [ report evaporation-rate * 1.5 ]  ;; Chuva aumenta a evaporação
+  if current-weather = "seco" [ report evaporation-rate * 2 ]       ;; Clima seco aumenta ainda mais a evaporação
+  if current-weather = "tempestade" [ report evaporation-rate * 2.5 ] ;; Tempestade causa evaporação muito rápida
+  if current-weather = "neve" [ report evaporation-rate * 0.7 ]     ;; Neve preserva feromônios (menor evaporação)
+  report evaporation-rate  ;; Valor padrão caso algo dê errado
+end
+
+;; Gerencia a mudança de clima com o tempo
+to manage-weather
+  set weather-timer weather-timer + 1
+  
+  ;; Muda o clima a cada 100 ticks
+  if weather-timer >= 100
+  [
+    set weather-timer 0
+    ;; Escolhe aleatoriamente entre os cinco climas
+    set current-weather one-of ["normal" "chuvoso" "seco" "tempestade" "neve"]
+    
+    ;; Exibe mensagem sobre a mudança de clima (opcional)
+    if current-weather = "chuvoso" [ print "O clima ficou chuvoso!" ]
+    if current-weather = "seco" [ print "O clima ficou seco!" ]
+    if current-weather = "normal" [ print "O clima voltou ao normal." ]
+    if current-weather = "tempestade" [ print "Uma tempestade está chegando!" ]
+    if current-weather = "neve" [ print "Começou a nevar!" ]
+    
+    ;; Aplica efeitos visuais e comportamentais do novo clima
+    apply-weather-visual-effects
+    
+    ;; Efeitos especiais para tempestade e neve
+    if current-weather = "tempestade" [
+      ;; Tempestades podem destruir algumas trilhas de feromônios
+      ask patches with [chemical > 0 and not nest? and not any? turtles-here] [
+        if random 100 < 30 [  ;; 30% de chance de destruir feromônios
+          set chemical 0
+        ]
+      ]
+    ]
+    
+    if current-weather = "neve" [
+      ;; Neve pode reduzir a velocidade das formigas
+      ask turtles [
+        if random 100 < 50 [  ;; 50% das formigas são afetadas
+          set size 1.8  ;; Formigas menores para representar movimento mais lento
+        ]
+      ]
+    ] else [
+      ;; Restaura o tamanho normal das formigas quando não está nevando
+      ask turtles [ set size 2 ]
+    ]
+  ]
+end
+
+;; Gerencia o aparecimento e desaparecimento de zonas tóxicas
+to manage-toxic-zones
+  ;; Atualiza os timers das zonas tóxicas existentes
+  ask patches with [toxic?]
+  [
+    set toxic-timer toxic-timer + 1
+    if toxic-timer > 50  ;; Zonas tóxicas duram 50 ticks
+    [
+      set toxic? false
+      set toxic-timer 0
+    ]
+  ]
+  
+  ;; Cria novas zonas tóxicas aleatoriamente
+  if random 100 < 1  ;; 1% de chance por tick
+  [
+    ask one-of patches with [not nest? and not obstacle? and food = 0 and not toxic?]
+    [
+      set toxic? true
+      set toxic-timer 0
+      
+      ;; Cria uma zona tóxica em forma de círculo
+      ask patches in-radius 3
+      [
+        if not nest? and not obstacle? and food = 0
+        [
+          set toxic? true
+          set toxic-timer 0
+        ]
+      ]
+    ]
+  ]
+end
+
+to return-to-nest  ;; procedimento de tartaruga
+  ifelse nest?
+  [ ;; solta comida e sai novamente
+    set color red
+    rt 180 ]
+  [ set chemical chemical + 60  ;; solta um pouco de feromônio
+    uphill-nest-scent ]         ;; segue em direção ao maior valor de nest-scent
+end
+
+to look-for-food  ;; procedimento de tartaruga
+  if food > 0
+  [ set color orange + 1     ;; pega comida
+    set food food - 1        ;; e reduz a fonte de comida
+    rt 180                   ;; e vira-se
+    stop ]
+  ;; vai na direção onde o cheiro químico é mais forte
+  if (chemical >= 0.05) and (chemical < 2)
+  [ uphill-chemical ]
+end
+
+;; fareja à esquerda e à direita, e vai onde o cheiro é mais forte
+to uphill-chemical  ;; procedimento de tartaruga
+  let scent-ahead chemical-scent-at-angle   0
+  let scent-right chemical-scent-at-angle  45
+  let scent-left  chemical-scent-at-angle -45
+  if (scent-right > scent-ahead) or (scent-left > scent-ahead)
+  [ ifelse scent-right > scent-left
+    [ rt 45 ]
+    [ lt 45 ] ]
+end
+
+;; fareja à esquerda e à direita, e vai onde o cheiro é mais forte
+to uphill-nest-scent  ;; procedimento de tartaruga
+  let scent-ahead nest-scent-at-angle   0
+  let scent-right nest-scent-at-angle  45
+  let scent-left  nest-scent-at-angle -45
+  if (scent-right > scent-ahead) or (scent-left > scent-ahead)
+  [ ifelse scent-right > scent-left
+    [ rt 45 ]
+    [ lt 45 ] ]
+end
+
+to wiggle  ;; procedimento de tartaruga
+  rt random 40
+  lt random 40
+  
+  ;; Verifica se há obstáculo à frente, se sim, vira-se
+  if not can-move? 1 or [obstacle?] of patch-ahead 1
+  [ rt 180 ]
+end
+
+to-report nest-scent-at-angle [angle]
+  let p patch-right-and-ahead angle 1
+  if p = nobody [ report 0 ]
+  report [nest-scent] of p
+end
+
+to-report chemical-scent-at-angle [angle]
+  let p patch-right-and-ahead angle 1
+  if p = nobody [ report 0 ]
+  report [chemical] of p
+end
+
+; Copyright 1997 Uri Wilensky com modificações adicionadas.
+; Veja a aba Info para direitos autorais e licença completos.
