@@ -28,3 +28,54 @@ to setup
   setup-ants
   reset-ticks
 end
+
+; 3. Patches do Ambiente
+; ----------------------------------
+to setup-patches
+  ask patches [
+    set pcolor green
+    if random 100 < 10 [set pcolor brown set obstacle? true]
+  ]
+end
+
+
+; 4. Criação dos Ninhos
+; ----------------------------------
+to setup-nests
+  ask patch -10 -10 [set pcolor violet]
+  ask patch 10 -10 [set pcolor cyan]
+  ask patch 0 10 [set pcolor lime]
+end
+
+
+; 5. Criação das Formigas
+; ----------------------------------
+to setup-ants
+  create-ants1 20 [
+    set shape "ant"
+    set color red
+    set size 1.5
+    set health 100
+    set strength 10
+    set role one-of ["worker" "explorer"]
+    setxy -10 -10
+  ]
+  create-ants2 20 [
+    set shape "ant"
+    set color blue
+    set size 1.5
+    set health 110
+    set strength 12
+    set role one-of ["worker" "explorer"]
+    setxy 10 -10
+  ]
+  create-ants3 20 [
+    set shape "ant"
+    set color green
+    set size 1.5
+    set health 90
+    set strength 8
+    set role one-of ["worker" "explorer"]
+    setxy 0 10
+  ]
+end
