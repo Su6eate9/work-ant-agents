@@ -1,4 +1,4 @@
-; Tipos de Formigas com Predadores
+; Formigas com Predadores, Raças e Papéis Inteligentes incluindo guerreiras 
 
 ; 1. Variáveis Globais e Raças
 ; ----------------------------------
@@ -29,6 +29,7 @@ to setup
   reset-ticks
 end
 
+
 ; 3. Patches do Ambiente
 ; ----------------------------------
 to setup-patches
@@ -57,7 +58,7 @@ to setup-ants
     set size 1.5
     set health 100
     set strength 10
-    set role one-of ["worker" "explorer"]
+    set role one-of ["worker" "explorer" "warrior"]
     setxy -10 -10
   ]
   create-ants2 20 [
@@ -66,7 +67,7 @@ to setup-ants
     set size 1.5
     set health 110
     set strength 12
-    set role one-of ["worker" "explorer"]
+    set role one-of ["worker" "explorer" "warrior"]
     setxy 10 -10
   ]
   create-ants3 20 [
@@ -75,7 +76,7 @@ to setup-ants
     set size 1.5
     set health 90
     set strength 8
-    set role one-of ["worker" "explorer"]
+    set role one-of ["worker" "explorer" "warrior"]
     setxy 0 10
   ]
 end
