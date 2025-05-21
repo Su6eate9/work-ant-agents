@@ -80,3 +80,41 @@ to setup-ants
     setxy 0 10
   ]
 end
+
+; 6. Loop Principal
+; ----------------------------------
+to go
+  change-weather
+  maybe-spawn-predators
+  ask turtles [
+    if health > 0 [
+      if role = "warrior" [warrior-behavior]
+      if role != "warrior" [move-ant]
+    ]
+    if health <= 0 [die]
+  ]
+  ask anteaters [hunt-ants]
+  ask boas [hunt-anteaters]
+  tick
+end
+
+
+; 7. Movimento das Formigas (não guerreiras)
+; ----------------------------------
+to move-ant
+  if not can-move? 1 or [pcolor] of patch-ahead 1 = brown [ rt 180 ]
+  if [pcolor] of patch-here = yellow [ set health health - 1 ]
+  fd 1
+end
+
+
+; 8. Comportamento de Formigas Guerreiras
+; ----------------------------------
+to warrior-behavior
+  let enemy one-of turtles in-radius 2 with [breed != breed-of myself and breed != boas and breed != anteaters]
+  if enemy != nobody [
+    if random strength > random [strength] of enemy [ ask enemy [ die ] ]
+    stop
+  ]
+  if distancexy 0 0 < 15 [rt random 90 lt random 90 fd 0.5] ; patrulha
+end
