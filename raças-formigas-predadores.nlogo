@@ -1,4 +1,4 @@
-; Formigas com Predadores, Raças e Papéis Inteligentes incluindo guerreiras 
+; Modelo de Formigas com Predadores, Raças e Papéis Inteligentes - NetLogo
 
 ; 1. Variáveis Globais e Raças
 ; ----------------------------------
@@ -8,13 +8,15 @@ breeds [ants1 ant1 ants2 ant2 ants3 ant3]
 breeds [anteaters anteater boas boa] ; predadores nível 1 e 2
 
 ; Variáveis de cada raça de formiga
-ants1-own [health strength role]
-ants2-own [health strength role]
-ants3-own [health strength role]
+ants1-own [health strength role carrying pheromone-trail]
+ants2-own [health strength role carrying pheromone-trail]
+ants3-own [health strength role carrying pheromone-trail]
 
 ; Predadores
 anteaters-own [power]
 boas-own [power]
+
+patches-own [has-food? food-amount pheromone obstacle?]
 
 
 ; 2. Setup Inicial
@@ -26,6 +28,7 @@ to setup
   setup-patches
   setup-nests
   setup-ants
+  setup-food
   reset-ticks
 end
 
@@ -35,6 +38,8 @@ end
 to setup-patches
   ask patches [
     set pcolor green
+    set pheromone 0
+    set obstacle? false
     if random 100 < 10 [set pcolor brown set obstacle? true]
   ]
 end
@@ -59,6 +64,8 @@ to setup-ants
     set health 100
     set strength 10
     set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
     setxy -10 -10
   ]
   create-ants2 20 [
@@ -68,6 +75,8 @@ to setup-ants
     set health 110
     set strength 12
     set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
     setxy 10 -10
   ]
   create-ants3 20 [
@@ -77,34 +86,42 @@ to setup-ants
     set health 90
     set strength 8
     set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
     setxy 0 10
   ]
 end
 
-; 6. Loop Principal
+
+; 6. Colocação de Comida
+; ----------------------------------
+to setup-food
+  ask n-of 30 patches with [not obstacle?] [
+    set has-food? true
+    set food-amount 5 + random 5
+    set pcolor blue
+  ]
+end
+
+
+; 7. Loop Principal
 ; ----------------------------------
 to go
   change-weather
   maybe-spawn-predators
+  diffuse pheromone 0.25
+  ask patches [ set pheromone pheromone * 0.95 ]
   ask turtles [
     if health > 0 [
       if role = "warrior" [warrior-behavior]
-      if role != "warrior" [move-ant]
+      if role = "explorer" [explorer-behavior]
+      if role = "worker" [worker-behavior]
     ]
     if health <= 0 [die]
   ]
   ask anteaters [hunt-ants]
   ask boas [hunt-anteaters]
   tick
-end
-
-
-; 7. Movimento das Formigas (não guerreiras)
-; ----------------------------------
-to move-ant
-  if not can-move? 1 or [pcolor] of patch-ahead 1 = brown [ rt 180 ]
-  if [pcolor] of patch-here = yellow [ set health health - 1 ]
-  fd 1
 end
 
 
@@ -116,10 +133,46 @@ to warrior-behavior
     if random strength > random [strength] of enemy [ ask enemy [ die ] ]
     stop
   ]
-  if distancexy 0 0 < 15 [rt random 90 lt random 90 fd 0.5] ; patrulha
+  if distancexy 0 0 < 15 [rt random 90 lt random 90 fd 0.5]
 end
 
-; 9. Predadores - Aparecimento
+
+; 9. Exploradoras - Detectam Comida e Marcam com Feromônio
+; ----------------------------------
+to explorer-behavior
+  if [has-food?] of patch-here [
+    set pheromone-trail 100
+    set [pheromone] of patch-here pheromone-trail
+  ]
+  wiggle
+end
+
+
+; 10. Trabalhadoras - Seguem Feromônio e Carregam Comida
+; ----------------------------------
+to worker-behavior
+  if not carrying [
+    let strongest-patch max-one-of neighbors4 with [pheromone > 0 and not obstacle?] [pheromone]
+    if strongest-patch != nobody [ face strongest-patch ]
+    fd 1
+    if [has-food?] of patch-here [
+      set carrying true
+      set [food-amount] of patch-here ([food-amount] of patch-here - 1)
+      if [food-amount] of patch-here <= 0 [ set has-food? false set pcolor green ]
+    ]
+  ]
+  if carrying [
+    rt random 20 lt random 20 fd 1
+    set pheromone-trail pheromone-trail + 50
+    ask patch-here [ set pheromone pheromone + 50 ]
+    if patch-here = patch -10 -10 or patch-here = patch 10 -10 or patch-here = patch 0 10 [
+      set carrying false
+    ]
+  ]
+end
+
+
+; 11. Predadores - Aparecimento
 ; ----------------------------------
 to maybe-spawn-predators
   if random-float 1000 < 1 [
@@ -143,7 +196,7 @@ to maybe-spawn-predators
 end
 
 
-; 10. Predadores - Ações
+; 12. Predadores - Ações
 ; ----------------------------------
 to hunt-ants
   let prey one-of turtles in-radius 2 with [breed != breed-of myself and breed != boas and breed != anteaters]
@@ -166,7 +219,7 @@ to hunt-anteaters
 end
 
 
-; 11. Mudança do Clima
+; 13. Clima
 ; ----------------------------------
 to change-weather
   set weather-timer weather-timer - 1
@@ -177,3 +230,4 @@ to change-weather
   if current-weather = "rainy" [set diffusion-rate 0.5 set evaporation-rate 1.5]
   if current-weather = "dry" [set diffusion-rate 1.5 set evaporation-rate 2.0]
 end
+
