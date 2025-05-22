@@ -16,6 +16,7 @@ turtles-own [
 ;; Variáveis globais para controle do clima
 globals [
   current-weather      ;; tipo de clima atual ("normal", "chuvoso", "seco", "tempestade", "neve")
+  previous-weather      ;; clima anterior
   weather-timer        ;; contador para alternar o clima periodicamente
 ]
 
@@ -40,6 +41,7 @@ end
 ;; Inicializa o clima como normal
 to setup-weather
   set current-weather "normal"
+  set previous-weather "normal"
   set weather-timer 0
   
   ;; Inicializa a aparência visual de acordo com o clima
@@ -265,16 +267,19 @@ to manage-weather
   if weather-timer >= 100
   [
     set weather-timer 0
-    ;; Escolhe aleatoriamente entre os cinco climas
+    ;; Armazena o clima anterior
+    set previous-weather current-weather
+    ;; Escolhe um novo clima aleatório
     set current-weather one-of ["normal" "chuvoso" "seco" "tempestade" "neve"]
     
-    ;; Exibe mensagem sobre a mudança de clima (opcional)
+    ;; Só mostra a mensagem se o clima mudou
+    if current-weather != previous-weather [
     if current-weather = "chuvoso" [ print "O clima ficou chuvoso!" ]
     if current-weather = "seco" [ print "O clima ficou seco!" ]
     if current-weather = "normal" [ print "O clima voltou ao normal." ]
     if current-weather = "tempestade" [ print "Uma tempestade está chegando!" ]
     if current-weather = "neve" [ print "Começou a nevar!" ]
-    
+    ]
     ;; Aplica efeitos visuais e comportamentais do novo clima
     apply-weather-visual-effects
     
