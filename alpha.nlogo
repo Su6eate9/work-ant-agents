@@ -1,3 +1,9 @@
+; Modelo Unificado de Formigas com Clima, Predadores, Raças e Papéis - NetLogo
+
+; ========================================
+; 1. DEFINIÇÕES DE RAÇAS E VARIÁVEIS
+; ========================================
+
 patches-own [
   chemical             ;; quantidade de feromônio neste patch
   food                 ;; quantidade de comida neste patch (0, 1, ou 2)
@@ -20,9 +26,9 @@ globals [
   weather-timer        ;; contador para alternar o clima periodicamente
 ]
 
-;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Setup procedures ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;
+; ========================================
+; 2. PROCEDIMENTOS DE SETUP
+; ========================================
 
 to setup
   clear-all
@@ -144,63 +150,62 @@ to recolor-patch  ;; procedimento de patch
   ]
 end
 
-;;;;;;;;;;;;;;;;;;;;;
-;;; Go procedures ;;;
-;;;;;;;;;;;;;;;;;;;;;
+; ========================================
+; 3. PROCEDIMENTOS PRINCIPAIS (GO)
+; ========================================
 
-to go  ;; botão forever
-  if not any? turtles [ stop ]  ;; para a simulação se todas as formigas morrerem
+to go
+  if not any? turtles with [breed != anteaters and breed != boas] [ 
+    print "Todas as formigas morreram! Simulação encerrada."
+    stop 
+  ]
   
-  ;; Gerencia o clima
+  ; Gerenciamento do ambiente
   manage-weather
-  
-  ;; Gerencia zonas tóxicas
   manage-toxic-zones
+  maybe-spawn-predators
   
-  ask turtles
-  [ 
-    if who >= ticks [ stop ] ;; atrasa a partida inicial
+  ; Comportamento das formigas
+  ask turtles with [breed != anteaters and breed != boas] [
+    if who >= ticks [ stop ] ; atraso inicial
     
-    ;; Verifica se a formiga está em zona tóxica
-    if [toxic?] of patch-here
-    [
-      set health health - 10  ;; reduz saúde se estiver em zona tóxica
-      if health <= 0 [ die ]  ;; formiga morre se saúde chegar a zero
+    ; Verificações de saúde e ambiente
+    handle-environmental-effects
+    
+    if health > 0 [
+      ; Comportamento baseado no papel
+      if role = "warrior" [ warrior-behavior ]
+      if role = "explorer" [ explorer-behavior ]
+      if role = "worker" [ worker-behavior ]
+      
+      ; Movimento e navegação
+      handle-movement
     ]
     
-    ;; Efeitos adicionais baseados no clima atual
-    handle-weather-effects
-    
-    ;; Continua com o comportamento normal se estiver viva
-    ifelse color = red
-    [ look-for-food  ]       ;; não carregando comida? procure por ela
-    [ return-to-nest ]       ;; carregando comida? leve-a de volta ao ninho
-    
-    wiggle
-    
-    ;; Movimento ajustado com base no clima
-    ifelse current-weather = "neve"
-    [ 
-      ;; Movimento mais lento na neve
-      if random 100 < 70 [ fd 1 ]  ;; Apenas 70% de chance de se mover na neve
-    ]
-    [
-      fd 1  ;; Movimento normal em outros climas
-    ]
+    ; Remove formigas mortas
+    if health <= 0 [ die ]
   ]
   
-  ;; Difusão e evaporação do feromônio baseado no clima atual
-  let current-diffusion get-weather-diffusion
-  let current-evaporation get-weather-evaporation
+  ; Comportamento dos predadores
+  ask anteaters [ anteater-behavior ]
+  ask boas [ boa-behavior ]
   
-  diffuse chemical (current-diffusion / 100)
-  ask patches
-  [ 
-    set chemical chemical * (100 - current-evaporation) / 100  ;; evapora lentamente o feromônio
-    recolor-patch 
-  ]
+  ; Atualização do ambiente
+  update-environment
+  
   tick
 end
+; ========================================
+; 4. COMPORTAMENTOS DAS FORMIGAS
+; ========================================
+
+; ========================================
+; 5. COMPORTAMENTOS DOS PREDADORES
+; ========================================
+
+; ========================================
+; 6. GERENCIAMENTO DO AMBIENTE
+; ========================================
 
 ;; Procedimento para lidar com efeitos específicos do clima nas formigas
 to handle-weather-effects
@@ -385,6 +390,10 @@ to uphill-nest-scent  ;; procedimento de tartaruga
     [ lt 45 ] ]
 end
 
+; ========================================
+; 7. FUNÇÕES AUXILIARES
+; ========================================
+
 to wiggle  ;; procedimento de tartaruga
   rt random 40
   lt random 40
@@ -406,5 +415,20 @@ to-report chemical-scent-at-angle [angle]
   report [chemical] of p
 end
 
-; Copyright 1997 Uri Wilensky com modificações adicionadas.
-; Veja a aba Info para direitos autorais e licença completos.
+; ========================================
+; 8. INFORMAÇÕES DE COPYRIGHT
+; ========================================
+
+; Modelo baseado no trabalho original de Uri Wilensky (1997)
+; com extensões significativas para múltiplas colônias,
+; predadores, papéis especializados e sistema climático avançado.
+; 
+; Funcionalidades integradas:
+; - Três colônias de formigas com características únicas
+; - Sistema de papéis (trabalhadora, exploradora, guerreira)
+; - Predadores em dois níveis (tamanduás e cobras)
+; - Sistema climático com 5 tipos de clima
+; - Zonas tóxicas dinâmicas
+; - Obstáculos e navegação inteligente
+; - Combate entre colônias
+; - Múltiplos tipos de feromônios
