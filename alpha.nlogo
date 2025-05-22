@@ -199,6 +199,131 @@ end
 ; 4. COMPORTAMENTOS DAS FORMIGAS
 ; ========================================
 
+to warrior-behavior
+  ; Procura por inimigos próximos
+  let enemies turtles in-radius 3 with [
+    breed != [breed] of myself and 
+    breed != anteaters and 
+    breed != boas and
+    home-colony != [home-colony] of myself
+  ]
+  
+  if any? enemies [
+    let target one-of enemies
+    face target
+    
+    ; Combate
+    if distance target <= 1 [
+      if random strength > random [strength] of target [
+        ask target [ 
+          set health health - 20
+          if health <= 0 [ die ]
+        ]
+      ]
+    ]
+    fd 0.5
+    stop
+  ]
+  
+  ; Patrulha próximo ao ninho
+  let home-x colony1-nest-x
+  let home-y colony1-nest-y
+  if home-colony = 2 [ set home-x colony2-nest-x set home-y colony2-nest-y ]
+  if home-colony = 3 [ set home-x colony3-nest-x set home-y colony3-nest-y ]
+  
+  if distancexy home-x home-y > 10 [
+    facexy home-x home-y
+  ]
+  
+  wiggle
+end
+
+to explorer-behavior
+  ; Marca comida encontrada com feromônio
+  if [has-food?] of patch-here and [food-amount] of patch-here > 0 [
+    set pheromone-trail 100
+    ask patch-here [ 
+      set pheromone pheromone + 100
+      set chemical chemical + 100
+      set colony-scent [home-colony] of myself
+    ]
+  ]
+  
+  ; Exploração inteligente
+  if not carrying [
+    ; Procura por áreas não exploradas
+    let unexplored-patches patches in-radius 5 with [
+      pheromone < 10 and 
+      not obstacle? and 
+      not toxic?
+    ]
+    
+    if any? unexplored-patches [
+      let target-patch one-of unexplored-patches
+      face target-patch
+    ]
+  ]
+  
+  wiggle
+end
+
+to worker-behavior
+  if not carrying [
+    ; Procura por comida
+    if [has-food?] of patch-here and [food-amount] of patch-here > 0 [
+      set carrying true
+      set color orange + 1
+      ask patch-here [ 
+        set food-amount food-amount - 1
+        if food-amount <= 0 [ 
+          set has-food? false 
+          set food 0
+        ]
+      ]
+      rt 180
+      stop
+    ]
+    
+    ; Segue trilhas de feromônio da própria colônia
+    let best-patch max-one-of neighbors4 with [
+      (pheromone > 0 or chemical > 0.05) and 
+      not obstacle? and 
+      not toxic? and
+      (colony-scent = 0 or colony-scent = [home-colony] of myself)
+    ] [ pheromone + chemical ]
+    
+    if best-patch != nobody [
+      face best-patch
+    ]
+  ]
+  
+  if carrying [
+    ; Retorna ao ninho
+    let home-x colony1-nest-x
+    let home-y colony1-nest-y
+    if home-colony = 2 [ set home-x colony2-nest-x set home-y colony2-nest-y ]
+    if home-colony = 3 [ set home-x colony3-nest-x set home-y colony3-nest-y ]
+    
+    ; Verifica se chegou ao ninho
+    if distancexy home-x home-y < 4 [
+      set carrying false
+      set color [color] of one-of turtles with [breed = [breed] of myself and not carrying]
+      rt 180
+      stop
+    ]
+    
+    ; Deixa trilha de feromônio
+    ask patch-here [ 
+      set chemical chemical + 60
+      set pheromone pheromone + 50
+      set colony-scent [home-colony] of myself
+    ]
+    
+    ; Navega em direção ao ninho
+    uphill-nest-scent
+  ]
+end
+
 ; ========================================
 ; 5. COMPORTAMENTOS DOS PREDADORES
 ; ========================================
