@@ -328,6 +328,72 @@ end
 ; 5. COMPORTAMENTOS DOS PREDADORES
 ; ========================================
 
+to anteater-behavior
+  set hunt-timer hunt-timer + 1
+  
+  ; Caça formigas
+  let prey turtles in-radius 2 with [
+    breed != anteaters and breed != boas
+  ]
+  
+  if any? prey [
+    let target one-of prey
+    face target
+    if distance target <= 1 [
+      ask target [ die ]
+      set hunt-timer 0
+    ]
+  ]
+  
+  ; Movimento
+  rt random 60
+  lt random 60
+  fd 0.7
+  
+  ; Remove predador após um tempo
+  if hunt-timer > 200 [ die ]
+end
+
+to boa-behavior
+  set hunt-timer hunt-timer + 1
+  
+  ; Caça tamanduás primeiro, depois formigas
+  let anteater-prey anteaters in-radius 2
+  if any? anteater-prey [
+    let target one-of anteater-prey
+    face target
+    if distance target <= 1 [
+      if random power > random [power] of target [
+        ask target [ die ]
+        set hunt-timer 0
+      ]
+    ]
+  ]
+  
+  ; Se não há tamanduás, caça formigas
+  if not any? anteater-prey [
+    let ant-prey turtles in-radius 2 with [
+      breed != anteaters and breed != boas
+    ]
+    if any? ant-prey [
+      let target one-of ant-prey
+      face target
+      if distance target <= 1 [
+        ask target [ die ]
+        set hunt-timer 0
+      ]
+    ]
+  ]
+  
+  ; Movimento mais lento
+  rt random 45
+  lt random 45
+  fd 0.4
+  
+  ; Remove predador após um tempo
+  if hunt-timer > 300 [ die ]
+end
+
 ; ========================================
 ; 6. GERENCIAMENTO DO AMBIENTE
 ; ========================================
