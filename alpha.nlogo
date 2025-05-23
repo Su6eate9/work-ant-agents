@@ -4,28 +4,69 @@
 ; 1. DEFINIÇÕES DE RAÇAS E VARIÁVEIS
 ; ========================================
 
+; Raças de formigas
+breed [ants1 ant1]  ; Colônia vermelha
+breed [ants2 ant2]  ; Colônia azul  
+breed [ants3 ant3]  ; Colônia verde
+
+; Predadores
+breed [anteaters anteater]  ; Predadores nível 1
+breed [boas boa]           ; Predadores nível 2
+
+; Variáveis dos patches
 patches-own [
-  chemical             ;; quantidade de feromônio neste patch
-  food                 ;; quantidade de comida neste patch (0, 1, ou 2)
-  nest?                ;; verdadeiro nos patches de ninho, falso em outros lugares
-  nest-scent           ;; número que é maior quanto mais perto do ninho
-  food-source-number   ;; número (1, 2, ou 3) para identificar as fontes de comida
-  obstacle?            ;; verdadeiro se o patch for um obstáculo, falso em outros lugares
-  toxic?               ;; verdadeiro se o patch for tóxico, falso em outros lugares
-  toxic-timer          ;; contador para controlar quando zonas tóxicas aparecem/desaparecem
+  chemical             ; quantidade de feromônio neste patch
+  food                 ; quantidade de comida neste patch (0, 1, ou 2)
+  nest?                ; verdadeiro nos patches de ninho, falso em outros lugares
+  nest-scent           ; número que é maior quanto mais perto do ninho
+  food-source-number   ; número (1, 2, ou 3) para identificar as fontes de comida
+  obstacle?            ; verdadeiro se o patch for um obstáculo
+  toxic?               ; verdadeiro se o patch for tóxico
+  toxic-timer          ; contador para controlar quando zonas tóxicas aparecem/desaparecem
+  has-food?            ; indica se há comida no patch
+  food-amount          ; quantidade específica de comida
+  pheromone            ; trilha de feromônio deixada pelas formigas
+  colony-scent         ; indica qual colônia marcou este patch
 ]
 
+; Variáveis das formigas (todas as raças)
 turtles-own [
-  health               ;; saúde da formiga (100 = saudável, 0 = morta)
+  health               ; saúde da formiga (100 = saudável, 0 = morta)
+  strength             ; força da formiga para combate
+  role                 ; papel da formiga ("worker", "explorer", "warrior")
+  carrying             ; se está carregando comida
+  pheromone-trail      ; intensidade do feromônio que deixa
+  home-colony          ; qual colônia pertence (1, 2, ou 3)
+  target-x             ; coordenada x do alvo
+  target-y             ; coordenada y do alvo
 ]
 
-;; Variáveis globais para controle do clima
+; Variáveis dos predadores
+anteaters-own [
+  power                ; poder de ataque do predador
+  hunt-timer           ; contador para caça
+]
+
+boas-own [
+  power                ; poder de ataque do predador
+  hunt-timer           ; contador para caça
+]
+
+; Variáveis globais
 globals [
-  current-weather      ;; tipo de clima atual ("normal", "chuvoso", "seco", "tempestade", "neve")
-  previous-weather      ;; clima anterior
-  weather-timer        ;; contador para alternar o clima periodicamente
+  current-weather      ; tipo de clima atual
+  previous-weather     ; clima anterior
+  weather-timer        ; contador para alternar o clima
+  ;; diffusion-rate       ; taxa de difusão dos feromônios
+  ;; evaporation-rate     ; taxa de evaporação dos feromônios
+  ;; population           ; população total de formigas
+  colony1-nest-x      ; coordenada x do ninho da colônia 1
+  colony1-nest-y      ; coordenada y do ninho da colônia 1
+  colony2-nest-x      ; coordenada x do ninho da colônia 2
+  colony2-nest-y      ; coordenada y do ninho da colônia 2
+  colony3-nest-x      ; coordenada x do ninho da colônia 3
+  colony3-nest-y      ; coordenada y do ninho da colônia 3
 ]
-
 ; ========================================
 ; 2. PROCEDIMENTOS DE SETUP
 ; ========================================
