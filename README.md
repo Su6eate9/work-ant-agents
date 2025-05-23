@@ -2,6 +2,9 @@
 
 Este repositório contém o código e a documentação para o projeto **work-ant-agents**, desenvolvido durante a disciplina de **Inteligência Artificial** da **Universidade Federal do Maranhão (UFMA)**. O projeto utiliza o framework **NetLogo** para modelar um ecossistema complexo onde formigas de diferentes raças competem pela busca de alimentação e domínio de território.
 
+Link apresentação em vídeo: https://drive.google.com/file/d/170oKKHSkNzWmiQ4YiIBOiP-oXUMSvBkf/view?usp=drive_link
+Documentação completa: https://drive.google.com/file/d/1TVjZRPsEBc9dltOImjxrqeF3F6ADsoGi/view?usp=drive_link
+
 ---
 
 ## 🐜 **Descrição do Projeto**
