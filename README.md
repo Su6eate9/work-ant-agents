@@ -103,4 +103,4 @@ Este repositório contém o código e a documentação para o projeto **work-ant
 ## 🏛 **Universidade Federal do Maranhão (UFMA)**
 
 Disciplina: **Inteligência Artificial**  
-Aluno: Gabryel Guimarães, Antonio Claudino, Nickolas Ferreira, Maria Luiza.
+Discentes: Gabryel Guimarães, Antonio Claudino, Nickolas Ferreira, Maria Luiza.
