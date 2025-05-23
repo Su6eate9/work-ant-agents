@@ -73,122 +73,191 @@ globals [
 
 to setup
   clear-all
-  set-default-shape turtles "bug"
-  create-turtles population
-  [ 
-    set size 2         ;; mais fácil de ver
-    set color red      ;; vermelho = não carregando comida
-    set health 100     ;; começa com saúde total
-  ]
+  
+  ; Inicialização das variáveis globais
+  set population 60  ; Total de formigas (20 por colônia)
+  set diffusion-rate 50
+  set evaporation-rate 10
+  
+  ; Posições dos ninhos
+  set colony1-nest-x -15
+  set colony1-nest-y -15
+  set colony2-nest-x 15
+  set colony2-nest-y -15
+  set colony3-nest-x 0
+  set colony3-nest-y 15
+  
+  ; Setup dos componentes
   setup-patches
+  setup-nests
+  setup-ants
+  setup-food
   setup-weather
+  
   reset-ticks
 end
 
-;; Inicializa o clima como normal
+to setup-patches
+  ask patches [
+    ; Inicializa todas as propriedades
+    set chemical 0
+    set food 0
+    set nest? false
+    set nest-scent 0
+    set food-source-number 0
+    set obstacle? false
+    set toxic? false
+    set toxic-timer 0
+    set has-food? false
+    set food-amount 0
+    set pheromone 0
+    set colony-scent 0
+    
+    ; Cria obstáculos aleatórios
+    if random-float 100 < 8 [
+      set obstacle? true
+    ]
+    
+    ; Calcula nest-scent para cada colônia
+    let dist1 distancexy colony1-nest-x colony1-nest-y
+    let dist2 distancexy colony2-nest-x colony2-nest-y
+    let dist3 distancexy colony3-nest-x colony3-nest-y
+    set nest-scent 200 - min (list dist1 dist2 dist3)
+    
+    ; Configura ninhos
+    setup-nest-areas
+    
+    ; Configura fontes de comida originais
+    setup-original-food-sources
+    
+    ; Recolore o patch
+    recolor-patch
+  ]
+end
+
+to setup-nest-areas
+  ; Ninho da colônia 1 (vermelha)
+  if (distancexy colony1-nest-x colony1-nest-y) < 4 [
+    set nest? true
+    set colony-scent 1
+  ]
+  
+  ; Ninho da colônia 2 (azul)
+  if (distancexy colony2-nest-x colony2-nest-y) < 4 [
+    set nest? true
+    set colony-scent 2
+  ]
+  
+  ; Ninho da colônia 3 (verde)
+  if (distancexy colony3-nest-x colony3-nest-y) < 4 [
+    set nest? true
+    set colony-scent 3
+  ]
+end
+
+to setup-original-food-sources
+  ; Fonte de comida 1 (à direita)
+  if (distancexy (0.6 * max-pxcor) 0) < 5 [
+    set food-source-number 1
+    set food one-of [1 2]
+    set has-food? true
+    set food-amount 8 + random 5
+  ]
+  
+  ; Fonte de comida 2 (inferior esquerda)
+  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5 [
+    set food-source-number 2
+    set food one-of [1 2]
+    set has-food? true
+    set food-amount 8 + random 5
+  ]
+  
+  ; Fonte de comida 3 (superior esquerda)
+  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5 [
+    set food-source-number 3
+    set food one-of [1 2]
+    set has-food? true
+    set food-amount 8 + random 5
+  ]
+end
+
+to setup-nests
+  ; Marca os patches dos ninhos com cores específicas
+  ask patches with [distancexy colony1-nest-x colony1-nest-y < 4] [
+    set pcolor red + 2
+  ]
+  ask patches with [distancexy colony2-nest-x colony2-nest-y < 4] [
+    set pcolor blue + 2
+  ]
+  ask patches with [distancexy colony3-nest-x colony3-nest-y < 4] [
+    set pcolor green + 2
+  ]
+end
+
+to setup-ants
+  ; Colônia 1 - Vermelha
+  create-ants1 20 [
+    set shape "bug"
+    set color red
+    set size 2
+    set health 100
+    set strength 10 + random 5
+    set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
+    set home-colony 1
+    setxy colony1-nest-x colony1-nest-y
+    set target-x 0
+    set target-y 0
+  ]
+  
+  ; Colônia 2 - Azul
+  create-ants2 20 [
+    set shape "bug"
+    set color blue
+    set size 2
+    set health 110
+    set strength 12 + random 5
+    set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
+    set home-colony 2
+    setxy colony2-nest-x colony2-nest-y
+    set target-x 0
+    set target-y 0
+  ]
+  
+  ; Colônia 3 - Verde
+  create-ants3 20 [
+    set shape "bug"
+    set color green
+    set size 2
+    set health 90
+    set strength 8 + random 5
+    set role one-of ["worker" "explorer" "warrior"]
+    set carrying false
+    set pheromone-trail 0
+    set home-colony 3
+    setxy colony3-nest-x colony3-nest-y
+    set target-x 0
+    set target-y 0
+  ]
+end
+
+to setup-food
+  ; Adiciona comida espalhada aleatoriamente
+  ask n-of 25 patches with [not obstacle? and not nest? and food-source-number = 0] [
+    set has-food? true
+    set food-amount 3 + random 4
+    set food 1
+  ]
+end
+
 to setup-weather
   set current-weather "normal"
   set previous-weather "normal"
   set weather-timer 0
-  
-  ;; Inicializa a aparência visual de acordo com o clima
   apply-weather-visual-effects
-end
-
-;; Aplica efeitos visuais baseados no clima atual
-to apply-weather-visual-effects
-  ;; Atualiza a aparência dos patches para refletir o clima
-  ask patches [ recolor-patch ]
-  
-  ;; Atualiza a aparência das formigas com base no clima
-  ask turtles [
-    if current-weather = "neve" [
-      set size 1.8  ;; Formigas menores na neve
-    ]
-    if current-weather = "normal" [
-      set size 2    ;; Tamanho normal
-    ]
-  ]
-end
-
-to setup-patches
-  ask patches
-  [ 
-    ;; Inicializa todas as propriedades
-    set obstacle? false
-    set toxic? false
-    set toxic-timer 0
-    
-    setup-nest
-    setup-food
-    setup-obstacles
-    recolor-patch 
-  ]
-end
-
-to setup-nest  ;; procedimento de patch
-  ;; define a variável nest? como verdadeira dentro do ninho, falsa em outros lugares
-  set nest? (distancexy 0 0) < 5
-  ;; espalha um cheiro-de-ninho por todo o mundo -- mais forte perto do ninho
-  set nest-scent 200 - distancexy 0 0
-end
-
-to setup-food  ;; procedimento de patch
-  ;; configura fonte de comida um à direita
-  if (distancexy (0.6 * max-pxcor) 0) < 5
-  [ set food-source-number 1 ]
-  ;; configura fonte de comida dois na parte inferior esquerda
-  if (distancexy (-0.6 * max-pxcor) (-0.6 * max-pycor)) < 5
-  [ set food-source-number 2 ]
-  ;; configura fonte de comida três na parte superior esquerda
-  if (distancexy (-0.8 * max-pxcor) (0.8 * max-pycor)) < 5
-  [ set food-source-number 3 ]
-  ;; define "comida" nas fontes como 1 ou 2, aleatoriamente
-  if food-source-number > 0
-  [ set food one-of [1 2] ]
-end
-
-;; Configura obstáculos em posições aleatórias
-to setup-obstacles
-  ;; Não coloca obstáculos no ninho ou em fontes de comida
-  if (not nest?) and (food-source-number = 0) and (random-float 100 < 5)
-  [
-    set obstacle? true
-  ]
-end
-
-to recolor-patch  ;; procedimento de patch
-  ;; Primeira camada: visualização do clima (sutil)
-  let weather-color 0
-  if current-weather = "chuvoso" [ set weather-color 0.5 ]
-  if current-weather = "tempestade" [ set weather-color 1 ]
-  if current-weather = "neve" [ set weather-color -0.5 ]
-  
-  ;; dá cor ao ninho, obstáculos, zonas tóxicas e fontes de comida
-  ifelse obstacle?
-  [ set pcolor brown ]  ;; obstáculos são marrons
-  [
-    ifelse toxic?
-    [ set pcolor yellow ]  ;; zonas tóxicas são amarelas
-    [
-      ifelse nest?
-      [ set pcolor violet ]
-      [ ifelse food > 0
-        [ if food-source-number = 1 [ set pcolor cyan ]
-          if food-source-number = 2 [ set pcolor sky  ]
-          if food-source-number = 3 [ set pcolor blue ] ]
-        ;; escala a cor para mostrar a concentração química e efeito do clima
-        [ 
-          let base-color scale-color green chemical 0.1 5
-          ;; Ajusta sutilmente a cor base para refletir o clima
-          if current-weather = "neve" [ set pcolor base-color - 0.3 ]  ;; Mais branco para neve
-          if current-weather = "tempestade" [ set pcolor base-color - 0.5 ]  ;; Mais escuro para tempestade
-          if current-weather = "normal" [ set pcolor base-color ]
-          if current-weather = "chuvoso" [ set pcolor base-color - 0.2 ]  ;; Ligeiramente escuro para chuva
-          if current-weather = "seco" [ set pcolor base-color + 0.2 ]  ;; Mais claro para clima seco
-        ] ]
-    ]
-  ]
 end
 
 ; ========================================
