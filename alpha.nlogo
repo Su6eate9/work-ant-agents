@@ -637,17 +637,28 @@ to update-environment
     recolor-patch
   ]
 end
+
 ; ========================================
 ; 7. FUNÇÕES AUXILIARES
 ; ========================================
 
-to wiggle  ;; procedimento de tartaruga
+to wiggle
   rt random 40
   lt random 40
   
-  ;; Verifica se há obstáculo à frente, se sim, vira-se
-  if not can-move? 1 or [obstacle?] of patch-ahead 1
-  [ rt 180 ]
+  if not can-move? 1 or [obstacle?] of patch-ahead 1 [
+    rt 180
+  ]
+end
+
+to uphill-nest-scent
+  let scent-ahead nest-scent-at-angle 0
+  let scent-right nest-scent-at-angle 45
+  let scent-left nest-scent-at-angle -45
+  
+  if (scent-right > scent-ahead) or (scent-left > scent-ahead) [
+    ifelse scent-right > scent-left [ rt 45 ] [ lt 45 ]
+  ]
 end
 
 to-report nest-scent-at-angle [angle]
@@ -656,10 +667,70 @@ to-report nest-scent-at-angle [angle]
   report [nest-scent] of p
 end
 
-to-report chemical-scent-at-angle [angle]
-  let p patch-right-and-ahead angle 1
-  if p = nobody [ report 0 ]
-  report [chemical] of p
+to-report get-weather-diffusion
+  if current-weather = "normal" [ report diffusion-rate ]
+  if current-weather = "chuvoso" [ report diffusion-rate * 0.5 ]
+  if current-weather = "seco" [ report diffusion-rate * 1.5 ]
+  if current-weather = "tempestade" [ report diffusion-rate * 0.2 ]
+  if current-weather = "neve" [ report diffusion-rate * 0.3 ]
+  report diffusion-rate
+end
+
+to-report get-weather-evaporation
+  if current-weather = "normal" [ report evaporation-rate ]
+  if current-weather = "chuvoso" [ report evaporation-rate * 1.5 ]
+  if current-weather = "seco" [ report evaporation-rate * 2 ]
+  if current-weather = "tempestade" [ report evaporation-rate * 2.5 ]
+  if current-weather = "neve" [ report evaporation-rate * 0.7 ]
+  report evaporation-rate
+end
+
+to apply-weather-visual-effects
+  ask patches [ recolor-patch ]
+  ask turtles with [breed != anteaters and breed != boas] [
+    ifelse current-weather = "neve" [
+      set size 1.8
+    ] [
+      set size 2
+    ]
+  ]
+end
+
+to recolor-patch
+  ; Coloração baseada no tipo de patch
+  ifelse obstacle? [
+    set pcolor brown
+  ] [
+    ifelse toxic? [
+      set pcolor yellow
+    ] [
+      ifelse nest? [
+        ; Mantém a cor do ninho baseada na colônia
+        if colony-scent = 1 [ set pcolor red + 2 ]
+        if colony-scent = 2 [ set pcolor blue + 2 ]
+        if colony-scent = 3 [ set pcolor green + 2 ]
+        if colony-scent = 0 [ set pcolor violet ]
+      ] [
+        ifelse has-food? or food > 0 [
+          ; Cores para fontes de comida
+          if food-source-number = 1 [ set pcolor cyan ]
+          if food-source-number = 2 [ set pcolor sky ]
+          if food-source-number = 3 [ set pcolor blue ]
+          if food-source-number = 0 [ set pcolor orange ]
+        ] [
+          ; Coloração baseada em feromônios e clima
+          let base-color scale-color green (chemical + pheromone) 0.1 5
+          
+          ; Ajustes climáticos
+          if current-weather = "neve" [ set pcolor base-color - 0.3 ]
+          if current-weather = "tempestade" [ set pcolor base-color - 0.5 ]
+          if current-weather = "chuvoso" [ set pcolor base-color - 0.2 ]
+          if current-weather = "seco" [ set pcolor base-color + 0.2 ]
+          if current-weather = "normal" [ set pcolor base-color ]
+        ]
+      ]
+    ]
+  ]
 end
 
 ; ========================================
